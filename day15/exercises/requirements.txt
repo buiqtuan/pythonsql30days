@@ -1,0 +1,7 @@
+# Python requirements for 30-Day Python & SQL Course
+pandas>=1.5.0
+numpy>=1.24.0
+matplotlib>=3.6.0
+jupyter>=1.0.0
+sqlite3
+pytest>=7.0.0
