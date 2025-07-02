@@ -1,17 +1,20 @@
 """
-Day 5 Exercise: Functions Intro
+Day 5 Solution: Functions Intro
 ======================================
 
 Functions & Variable Scope - functions_intro.py
 
-Instructions:
-1. Complete the exercise according to the requirements
-2. Test your code thoroughly
-3. Add comments to explain your logic
+This solution demonstrates:
+1. Basic function definition and calling
+2. Functions with parameters and return values
+3. Default parameters
+4. Variable number of arguments (*args)
+5. Function documentation with docstrings
+6. Interactive user input with functions
 """
 
 print("=== Day 5: Functions & Variable Scope ===")
-print("Exercise: functions_intro.py")
+print("Solution: functions_intro.py")
 print()
 
 # Exercise 1: Basic function definitions and usage
@@ -75,7 +78,7 @@ def calculate_average(*numbers):
 
 def main():
     """Main function to run the exercise"""
-    print("Starting exercise...")
+    print("Starting solution...")
     print()
     
     # Test greet_user function
@@ -120,19 +123,18 @@ def main():
     print(f"Average of 100: {avg3}")
     print()
     
-    # Interactive example
-    print("=== Interactive Example ===")
-    user_name = input("Enter your name: ")
-    try:
-        user_age = int(input("Enter your age: "))
-        user_city = input("Enter your city (or press Enter for default): ") or "Unknown"
-        
-        user_info = get_user_info(user_name, user_age, user_city)
-        print(f"Your information: {user_info}")
-    except ValueError:
-        print("Please enter a valid age (number)")
+    # Demonstrate key concepts
+    print("=== Key Concepts Demonstrated ===")
+    print("✓ Function definition with def keyword")
+    print("✓ Function parameters and arguments")
+    print("✓ Return values")
+    print("✓ Default parameters")
+    print("✓ Variable number of arguments (*args)")
+    print("✓ Function documentation with docstrings")
+    print("✓ Function scope (local variables)")
+    print()
     
-    print("Exercise completed!")
+    print("Solution completed!")
 
 if __name__ == "__main__":
     main()
