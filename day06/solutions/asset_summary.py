@@ -1,607 +1,470 @@
 """
-Day 6 Solution: Asset Summary CLI
-=================================
+Day 6 Solution: Mini Project: Asset Summary CLI
+===============================================
 
-This solution provides a comprehensive asset management CLI application that demonstrates
-file I/O, data structures, error handling, and command-line interfaces.
+Asset Summary CLI - asset_summary.py
 
-Author: Python Learning Assistant
-Date: 2024
+This solution demonstrates:
+1. Combining all concepts from Days 1-5
+2. User input and data validation
+3. Lists for data storage
+4. Functions for organization and reusability
+5. Mathematical calculations (total, average, min, max)
+6. String formatting and output presentation
+7. Error handling and input validation
+8. Menu-driven CLI interface
+9. Data persistence (optional save to file)
+
+This mini-project showcases:
+- Variables and data types (Day 1)
+- Operators and expressions (Day 2)
+- Control structures (Day 3)
+- Loops and iterations (Day 4)
+- Functions and scope (Day 5)
 """
 
-import json
-import csv
-import os
 import sys
-from datetime import datetime, date
-from typing import Dict, List, Optional, Union, Any
-from dataclasses import dataclass, asdict
-from enum import Enum
-import argparse
+from datetime import datetime
 
+print("=== Day 6: Mini Project: Asset Summary CLI ===")
+print("Solution: asset_summary.py")
+print()
 
-# Enums for asset types and categories
-class AssetType(Enum):
-    """Enumeration of supported asset types."""
-    STOCK = "stock"
-    BOND = "bond"
-    CRYPTO = "crypto"
-    REAL_ESTATE = "real_estate"
-    CASH = "cash"
-    COMMODITY = "commodity"
-    OTHER = "other"
+def display_welcome():
+    """Display welcome message and program information"""
+    print("=" * 60)
+    print("         ASSET PORTFOLIO SUMMARY CALCULATOR")
+    print("=" * 60)
+    print("Track your assets and get instant portfolio analytics!")
+    print("Features:")
+    print("• Add multiple assets with names and values")
+    print("• Calculate total portfolio value")
+    print("• Get average asset value")
+    print("• Find minimum and maximum asset values")
+    print("• View detailed portfolio summary")
+    print("• Save portfolio to file")
+    print("-" * 60)
 
-
-class AssetCategory(Enum):
-    """Enumeration of asset categories."""
-    EQUITY = "equity"
-    FIXED_INCOME = "fixed_income"
-    ALTERNATIVE = "alternative"
-    CASH_EQUIVALENT = "cash_equivalent"
-
-
-# Data classes for asset management
-@dataclass
-class Asset:
-    """Represents a financial asset."""
-    name: str
-    asset_type: AssetType
-    category: AssetCategory
-    quantity: float
-    purchase_price: float
-    current_price: float
-    purchase_date: str
-    notes: str = ""
+def get_asset_input():
+    """
+    Get asset name and value from user with validation
     
-    @property
-    def total_value(self) -> float:
-        """Calculate total current value."""
-        return self.quantity * self.current_price
-    
-    @property
-    def total_cost(self) -> float:
-        """Calculate total purchase cost."""
-        return self.quantity * self.purchase_price
-    
-    @property
-    def gain_loss(self) -> float:
-        """Calculate gain/loss amount."""
-        return self.total_value - self.total_cost
-    
-    @property
-    def gain_loss_percentage(self) -> float:
-        """Calculate gain/loss percentage."""
-        if self.total_cost == 0:
-            return 0.0
-        return (self.gain_loss / self.total_cost) * 100
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization."""
-        data = asdict(self)
-        data['asset_type'] = self.asset_type.value
-        data['category'] = self.category.value
-        return data
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Asset':
-        """Create Asset from dictionary."""
-        data['asset_type'] = AssetType(data['asset_type'])
-        data['category'] = AssetCategory(data['category'])
-        return cls(**data)
-
-
-class AssetPortfolio:
-    """Manages a collection of assets."""
-    
-    def __init__(self, name: str = "My Portfolio"):
-        self.name = name
-        self.assets: List[Asset] = []
-        self.created_date = datetime.now().isoformat()
-        self.last_updated = self.created_date
-    
-    def add_asset(self, asset: Asset) -> None:
-        """Add an asset to the portfolio."""
-        self.assets.append(asset)
-        self.last_updated = datetime.now().isoformat()
-    
-    def remove_asset(self, asset_name: str) -> bool:
-        """Remove an asset by name."""
-        for i, asset in enumerate(self.assets):
-            if asset.name.lower() == asset_name.lower():
-                del self.assets[i]
-                self.last_updated = datetime.now().isoformat()
-                return True
-        return False
-    
-    def find_asset(self, asset_name: str) -> Optional[Asset]:
-        """Find an asset by name."""
-        for asset in self.assets:
-            if asset.name.lower() == asset_name.lower():
-                return asset
-        return None
-    
-    def update_asset_price(self, asset_name: str, new_price: float) -> bool:
-        """Update the current price of an asset."""
-        asset = self.find_asset(asset_name)
-        if asset:
-            asset.current_price = new_price
-            self.last_updated = datetime.now().isoformat()
-            return True
-        return False
-    
-    def get_total_value(self) -> float:
-        """Calculate total portfolio value."""
-        return sum(asset.total_value for asset in self.assets)
-    
-    def get_total_cost(self) -> float:
-        """Calculate total portfolio cost."""
-        return sum(asset.total_cost for asset in self.assets)
-    
-    def get_total_gain_loss(self) -> float:
-        """Calculate total portfolio gain/loss."""
-        return self.get_total_value() - self.get_total_cost()
-    
-    def get_total_gain_loss_percentage(self) -> float:
-        """Calculate total portfolio gain/loss percentage."""
-        total_cost = self.get_total_cost()
-        if total_cost == 0:
-            return 0.0
-        return (self.get_total_gain_loss() / total_cost) * 100
-    
-    def get_assets_by_type(self, asset_type: AssetType) -> List[Asset]:
-        """Get all assets of a specific type."""
-        return [asset for asset in self.assets if asset.asset_type == asset_type]
-    
-    def get_assets_by_category(self, category: AssetCategory) -> List[Asset]:
-        """Get all assets of a specific category."""
-        return [asset for asset in self.assets if asset.category == category]
-    
-    def get_allocation_by_type(self) -> Dict[AssetType, float]:
-        """Get portfolio allocation by asset type."""
-        total_value = self.get_total_value()
-        if total_value == 0:
-            return {}
+    Returns:
+        tuple: (asset_name, asset_value) or (None, None) if user wants to stop
+    """
+    while True:
+        # Get asset name
+        asset_name = input("\nEnter asset name (or 'done' to finish): ").strip()
         
-        allocation = {}
-        for asset_type in AssetType:
-            assets = self.get_assets_by_type(asset_type)
-            type_value = sum(asset.total_value for asset in assets)
-            if type_value > 0:
-                allocation[asset_type] = (type_value / total_value) * 100
+        if asset_name.lower() == 'done':
+            return None, None
         
-        return allocation
-    
-    def get_allocation_by_category(self) -> Dict[AssetCategory, float]:
-        """Get portfolio allocation by category."""
-        total_value = self.get_total_value()
-        if total_value == 0:
-            return {}
+        if not asset_name:
+            print("❌ Error: Asset name cannot be empty. Please try again.")
+            continue
         
-        allocation = {}
-        for category in AssetCategory:
-            assets = self.get_assets_by_category(category)
-            category_value = sum(asset.total_value for asset in assets)
-            if category_value > 0:
-                allocation[category] = (category_value / total_value) * 100
-        
-        return allocation
-    
-    def get_top_performers(self, limit: int = 5) -> List[Asset]:
-        """Get top performing assets by percentage gain."""
-        return sorted(self.assets, key=lambda x: x.gain_loss_percentage, reverse=True)[:limit]
-    
-    def get_worst_performers(self, limit: int = 5) -> List[Asset]:
-        """Get worst performing assets by percentage gain."""
-        return sorted(self.assets, key=lambda x: x.gain_loss_percentage)[:limit]
-
-
-class AssetManager:
-    """Main class for managing asset portfolios with file I/O."""
-    
-    def __init__(self, data_file: str = "portfolio_data.json"):
-        self.data_file = data_file
-        self.portfolio = AssetPortfolio()
-        self.load_portfolio()
-    
-    def load_portfolio(self) -> None:
-        """Load portfolio from file."""
-        if os.path.exists(self.data_file):
-            try:
-                with open(self.data_file, 'r') as f:
-                    data = json.load(f)
-                    self.portfolio.name = data.get('name', 'My Portfolio')
-                    self.portfolio.created_date = data.get('created_date', datetime.now().isoformat())
-                    self.portfolio.last_updated = data.get('last_updated', datetime.now().isoformat())
-                    
-                    for asset_data in data.get('assets', []):
-                        asset = Asset.from_dict(asset_data)
-                        self.portfolio.assets.append(asset)
+        # Get asset value
+        try:
+            value_input = input(f"Enter value for '{asset_name}': $").strip()
+            if not value_input:
+                print("❌ Error: Asset value cannot be empty. Please try again.")
+                continue
                 
-                print(f"✅ Portfolio loaded from {self.data_file}")
-            except Exception as e:
-                print(f"❌ Error loading portfolio: {e}")
-                print("Starting with empty portfolio...")
-        else:
-            print("📁 No existing portfolio found. Starting fresh...")
-    
-    def save_portfolio(self) -> None:
-        """Save portfolio to file."""
-        try:
-            data = {
-                'name': self.portfolio.name,
-                'created_date': self.portfolio.created_date,
-                'last_updated': self.portfolio.last_updated,
-                'assets': [asset.to_dict() for asset in self.portfolio.assets]
-            }
+            asset_value = float(value_input)
             
-            with open(self.data_file, 'w') as f:
-                json.dump(data, f, indent=2)
+            if asset_value < 0:
+                print("❌ Error: Asset value cannot be negative. Please try again.")
+                continue
             
-            print(f"✅ Portfolio saved to {self.data_file}")
-        except Exception as e:
-            print(f"❌ Error saving portfolio: {e}")
-    
-    def export_to_csv(self, filename: str = "portfolio_export.csv") -> None:
-        """Export portfolio to CSV format."""
-        try:
-            with open(filename, 'w', newline='') as f:
-                writer = csv.writer(f)
-                
-                # Write header
-                writer.writerow([
-                    'Name', 'Type', 'Category', 'Quantity', 'Purchase Price',
-                    'Current Price', 'Total Cost', 'Total Value', 'Gain/Loss',
-                    'Gain/Loss %', 'Purchase Date', 'Notes'
-                ])
-                
-                # Write asset data
-                for asset in self.portfolio.assets:
-                    writer.writerow([
-                        asset.name,
-                        asset.asset_type.value,
-                        asset.category.value,
-                        asset.quantity,
-                        f"${asset.purchase_price:.2f}",
-                        f"${asset.current_price:.2f}",
-                        f"${asset.total_cost:.2f}",
-                        f"${asset.total_value:.2f}",
-                        f"${asset.gain_loss:.2f}",
-                        f"{asset.gain_loss_percentage:.2f}%",
-                        asset.purchase_date,
-                        asset.notes
-                    ])
+            return asset_name, asset_value
             
-            print(f"✅ Portfolio exported to {filename}")
-        except Exception as e:
-            print(f"❌ Error exporting portfolio: {e}")
-    
-    def add_asset_interactive(self) -> None:
-        """Add an asset through interactive prompts."""
-        print("\n📈 Add New Asset")
-        print("-" * 20)
-        
-        try:
-            name = input("Asset name: ").strip()
-            if not name:
-                print("❌ Asset name cannot be empty")
-                return
-            
-            # Check if asset already exists
-            if self.portfolio.find_asset(name):
-                print(f"❌ Asset '{name}' already exists")
-                return
-            
-            # Asset type selection
-            print("\nAsset Types:")
-            for i, asset_type in enumerate(AssetType, 1):
-                print(f"{i}. {asset_type.value.replace('_', ' ').title()}")
-            
-            type_choice = int(input("Select asset type (number): ")) - 1
-            asset_type = list(AssetType)[type_choice]
-            
-            # Category selection
-            print("\nCategories:")
-            for i, category in enumerate(AssetCategory, 1):
-                print(f"{i}. {category.value.replace('_', ' ').title()}")
-            
-            category_choice = int(input("Select category (number): ")) - 1
-            category = list(AssetCategory)[category_choice]
-            
-            quantity = float(input("Quantity: "))
-            purchase_price = float(input("Purchase price per unit: $"))
-            current_price = float(input("Current price per unit: $"))
-            purchase_date = input("Purchase date (YYYY-MM-DD) or press Enter for today: ").strip()
-            
-            if not purchase_date:
-                purchase_date = date.today().isoformat()
-            
-            notes = input("Notes (optional): ").strip()
-            
-            asset = Asset(
-                name=name,
-                asset_type=asset_type,
-                category=category,
-                quantity=quantity,
-                purchase_price=purchase_price,
-                current_price=current_price,
-                purchase_date=purchase_date,
-                notes=notes
-            )
-            
-            self.portfolio.add_asset(asset)
-            print(f"✅ Asset '{name}' added successfully!")
-            
-        except (ValueError, IndexError) as e:
-            print(f"❌ Invalid input: {e}")
-        except KeyboardInterrupt:
-            print("\n❌ Operation cancelled")
-    
-    def display_portfolio_summary(self) -> None:
-        """Display comprehensive portfolio summary."""
-        if not self.portfolio.assets:
-            print("📊 Portfolio is empty. Add some assets to get started!")
-            return
-        
-        print(f"\n📊 Portfolio Summary: {self.portfolio.name}")
-        print("=" * 60)
-        
-        # Basic statistics
-        total_value = self.portfolio.get_total_value()
-        total_cost = self.portfolio.get_total_cost()
-        total_gain_loss = self.portfolio.get_total_gain_loss()
-        total_percentage = self.portfolio.get_total_gain_loss_percentage()
-        
-        print(f"Total Portfolio Value: ${total_value:,.2f}")
-        print(f"Total Cost Basis:      ${total_cost:,.2f}")
-        print(f"Total Gain/Loss:       ${total_gain_loss:,.2f} ({total_percentage:+.2f}%)")
-        print(f"Number of Assets:      {len(self.portfolio.assets)}")
-        print(f"Last Updated:          {self.portfolio.last_updated[:19].replace('T', ' ')}")
-        print()
-        
-        # Asset type allocation
-        print("📋 Allocation by Asset Type:")
-        print("-" * 30)
-        type_allocation = self.portfolio.get_allocation_by_type()
-        for asset_type, percentage in type_allocation.items():
-            print(f"{asset_type.value.replace('_', ' ').title():15}: {percentage:6.2f}%")
-        print()
-        
-        # Category allocation
-        print("📋 Allocation by Category:")
-        print("-" * 30)
-        category_allocation = self.portfolio.get_allocation_by_category()
-        for category, percentage in category_allocation.items():
-            print(f"{category.value.replace('_', ' ').title():15}: {percentage:6.2f}%")
-        print()
-        
-        # Top and worst performers
-        print("🚀 Top 3 Performers:")
-        print("-" * 20)
-        top_performers = self.portfolio.get_top_performers(3)
-        for i, asset in enumerate(top_performers, 1):
-            print(f"{i}. {asset.name}: {asset.gain_loss_percentage:+.2f}% (${asset.gain_loss:+,.2f})")
-        print()
-        
-        print("📉 Worst 3 Performers:")
-        print("-" * 22)
-        worst_performers = self.portfolio.get_worst_performers(3)
-        for i, asset in enumerate(worst_performers, 1):
-            print(f"{i}. {asset.name}: {asset.gain_loss_percentage:+.2f}% (${asset.gain_loss:+,.2f})")
-        print()
-    
-    def display_detailed_assets(self) -> None:
-        """Display detailed information for all assets."""
-        if not self.portfolio.assets:
-            print("📊 No assets to display.")
-            return
-        
-        print(f"\n📋 Detailed Asset List: {self.portfolio.name}")
-        print("=" * 80)
-        
-        # Header
-        print(f"{'Name':<20} {'Type':<12} {'Qty':<8} {'Price':<10} {'Value':<12} {'Gain/Loss':<15}")
-        print("-" * 80)
-        
-        # Asset details
-        for asset in sorted(self.portfolio.assets, key=lambda x: x.total_value, reverse=True):
-            gain_loss_str = f"${asset.gain_loss:+,.2f} ({asset.gain_loss_percentage:+.1f}%)"
-            print(f"{asset.name:<20} {asset.asset_type.value:<12} {asset.quantity:<8.2f} "
-                  f"${asset.current_price:<9.2f} ${asset.total_value:<11,.2f} {gain_loss_str:<15}")
-    
-    def update_prices_interactive(self) -> None:
-        """Update asset prices through interactive interface."""
-        if not self.portfolio.assets:
-            print("📊 No assets to update.")
-            return
-        
-        print("\n💰 Update Asset Prices")
-        print("-" * 25)
-        
-        print("Available assets:")
-        for i, asset in enumerate(self.portfolio.assets, 1):
-            print(f"{i}. {asset.name} (Current: ${asset.current_price:.2f})")
-        
-        try:
-            choice = int(input("\nSelect asset to update (number): ")) - 1
-            asset = self.portfolio.assets[choice]
-            
-            print(f"\nUpdating: {asset.name}")
-            print(f"Current price: ${asset.current_price:.2f}")
-            
-            new_price = float(input("New price: $"))
-            old_price = asset.current_price
-            asset.current_price = new_price
-            self.portfolio.last_updated = datetime.now().isoformat()
-            
-            print(f"✅ Updated {asset.name}: ${old_price:.2f} → ${new_price:.2f}")
-            
-        except (ValueError, IndexError) as e:
-            print(f"❌ Invalid selection: {e}")
-        except KeyboardInterrupt:
-            print("\n❌ Operation cancelled")
+        except ValueError:
+            print("❌ Error: Please enter a valid number for the asset value.")
+            continue
 
+def calculate_portfolio_stats(assets):
+    """
+    Calculate portfolio statistics
+    
+    Args:
+        assets (list): List of tuples (asset_name, asset_value)
+    
+    Returns:
+        dict: Dictionary containing portfolio statistics
+    """
+    if not assets:
+        return {
+            'total': 0,
+            'average': 0,
+            'minimum': 0,
+            'maximum': 0,
+            'count': 0
+        }
+    
+    values = [value for name, value in assets]
+    
+    return {
+        'total': sum(values),
+        'average': sum(values) / len(values),
+        'minimum': min(values),
+        'maximum': max(values),
+        'count': len(assets)
+    }
 
-class AssetSummaryCLI:
-    """Command-line interface for the Asset Summary application."""
+def find_min_max_assets(assets):
+    """
+    Find the assets with minimum and maximum values
     
-    def __init__(self):
-        self.manager = AssetManager()
+    Args:
+        assets (list): List of tuples (asset_name, asset_value)
     
-    def show_menu(self) -> None:
-        """Display the main menu."""
-        print("\n🏦 Asset Summary CLI")
-        print("=" * 30)
-        print("1. View Portfolio Summary")
-        print("2. View Detailed Assets")
-        print("3. Add New Asset")
-        print("4. Update Asset Prices")
-        print("5. Remove Asset")
-        print("6. Export to CSV")
-        print("7. Save Portfolio")
-        print("8. Load Sample Data")
-        print("9. Exit")
-        print("-" * 30)
+    Returns:
+        tuple: (min_asset, max_asset) as tuples of (name, value)
+    """
+    if not assets:
+        return None, None
     
-    def load_sample_data(self) -> None:
-        """Load sample portfolio data for demonstration."""
-        sample_assets = [
-            Asset("Apple Inc", AssetType.STOCK, AssetCategory.EQUITY, 100, 150.00, 175.50, "2023-01-15", "Tech stock"),
-            Asset("Microsoft Corp", AssetType.STOCK, AssetCategory.EQUITY, 50, 250.00, 280.75, "2023-02-01", "Cloud leader"),
-            Asset("Bitcoin", AssetType.CRYPTO, AssetCategory.ALTERNATIVE, 0.5, 45000.00, 42000.00, "2023-03-10", "Digital gold"),
-            Asset("10-Year Treasury", AssetType.BOND, AssetCategory.FIXED_INCOME, 10, 1000.00, 980.00, "2023-01-20", "Government bond"),
-            Asset("Savings Account", AssetType.CASH, AssetCategory.CASH_EQUIVALENT, 1, 25000.00, 25000.00, "2023-01-01", "Emergency fund"),
-            Asset("Gold ETF", AssetType.COMMODITY, AssetCategory.ALTERNATIVE, 25, 180.00, 195.50, "2023-02-15", "Precious metals")
-        ]
-        
-        for asset in sample_assets:
-            self.manager.portfolio.add_asset(asset)
-        
-        print("✅ Sample portfolio data loaded!")
+    min_asset = min(assets, key=lambda x: x[1])
+    max_asset = max(assets, key=lambda x: x[1])
     
-    def remove_asset_interactive(self) -> None:
-        """Remove an asset through interactive interface."""
-        if not self.manager.portfolio.assets:
-            print("📊 No assets to remove.")
-            return
+    return min_asset, max_asset
+
+def format_currency(amount):
+    """
+    Format a number as currency
+    
+    Args:
+        amount (float): Amount to format
+    
+    Returns:
+        str: Formatted currency string
+    """
+    return f"${amount:,.2f}"
+
+def display_portfolio_summary(assets):
+    """
+    Display comprehensive portfolio summary
+    
+    Args:
+        assets (list): List of tuples (asset_name, asset_value)
+    """
+    if not assets:
+        print("\n📭 No assets in portfolio yet!")
+        return
+    
+    stats = calculate_portfolio_stats(assets)
+    min_asset, max_asset = find_min_max_assets(assets)
+    
+    print("\n" + "=" * 50)
+    print("         PORTFOLIO SUMMARY REPORT")
+    print("=" * 50)
+    print(f"📊 Total Assets: {stats['count']}")
+    print(f"💰 Total Portfolio Value: {format_currency(stats['total'])}")
+    print(f"📈 Average Asset Value: {format_currency(stats['average'])}")
+    print(f"📉 Minimum Asset Value: {format_currency(stats['minimum'])}")
+    print(f"📊 Maximum Asset Value: {format_currency(stats['maximum'])}")
+    print("-" * 50)
+    
+    # Show min/max asset details
+    if min_asset and max_asset:
+        print(f"🔻 Lowest Value Asset: {min_asset[0]} - {format_currency(min_asset[1])}")
+        print(f"🔺 Highest Value Asset: {max_asset[0]} - {format_currency(max_asset[1])}")
         
-        print("\n🗑️ Remove Asset")
-        print("-" * 15)
-        
-        print("Available assets:")
-        for i, asset in enumerate(self.manager.portfolio.assets, 1):
-            print(f"{i}. {asset.name}")
-        
-        try:
-            choice = int(input("\nSelect asset to remove (number): ")) - 1
-            asset = self.manager.portfolio.assets[choice]
-            asset_name = asset.name
+        if stats['count'] > 1:
+            value_range = stats['maximum'] - stats['minimum']
+            print(f"📏 Value Range: {format_currency(value_range)}")
+    
+    print("-" * 50)
+
+def display_asset_list(assets):
+    """
+    Display detailed list of all assets
+    
+    Args:
+        assets (list): List of tuples (asset_name, asset_value)
+    """
+    if not assets:
+        print("\n📭 No assets to display!")
+        return
+    
+    print("\n" + "=" * 40)
+    print("         ASSET PORTFOLIO")
+    print("=" * 40)
+    print(f"{'#':<3} {'Asset Name':<20} {'Value':<15}")
+    print("-" * 40)
+    
+    for i, (name, value) in enumerate(assets, 1):
+        print(f"{i:<3} {name:<20} {format_currency(value):<15}")
+    
+    print("-" * 40)
+    total_value = sum(value for name, value in assets)
+    print(f"{'TOTAL:':<24} {format_currency(total_value):<15}")
+    print("=" * 40)
+
+def save_portfolio_to_file(assets):
+    """
+    Save portfolio to a text file
+    
+    Args:
+        assets (list): List of tuples (asset_name, asset_value)
+    """
+    if not assets:
+        print("\n❌ No assets to save!")
+        return
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"portfolio_summary_{timestamp}.txt"
+    
+    try:
+        with open(filename, 'w') as file:
+            file.write("ASSET PORTFOLIO SUMMARY REPORT\n")
+            file.write("=" * 50 + "\n")
+            file.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             
-            confirm = input(f"Are you sure you want to remove '{asset_name}'? (y/N): ").lower()
-            if confirm == 'y':
-                del self.manager.portfolio.assets[choice]
-                self.manager.portfolio.last_updated = datetime.now().isoformat()
-                print(f"✅ Removed '{asset_name}'")
+            # Asset list
+            file.write("ASSET LIST:\n")
+            file.write("-" * 30 + "\n")
+            for i, (name, value) in enumerate(assets, 1):
+                file.write(f"{i:2d}. {name:<20} {format_currency(value)}\n")
+            
+            # Statistics
+            stats = calculate_portfolio_stats(assets)
+            min_asset, max_asset = find_min_max_assets(assets)
+            
+            file.write("\nPORTFOLIO STATISTICS:\n")
+            file.write("-" * 30 + "\n")
+            file.write(f"Total Assets: {stats['count']}\n")
+            file.write(f"Total Value: {format_currency(stats['total'])}\n")
+            file.write(f"Average Value: {format_currency(stats['average'])}\n")
+            file.write(f"Minimum Value: {format_currency(stats['minimum'])}\n")
+            file.write(f"Maximum Value: {format_currency(stats['maximum'])}\n")
+            
+            if min_asset and max_asset:
+                file.write(f"\nLowest Value Asset: {min_asset[0]} - {format_currency(min_asset[1])}\n")
+                file.write(f"Highest Value Asset: {max_asset[0]} - {format_currency(max_asset[1])}\n")
+        
+        print(f"\n✅ Portfolio saved to '{filename}'")
+        
+    except Exception as e:
+        print(f"\n❌ Error saving file: {e}")
+
+def display_menu():
+    """Display the main menu options"""
+    print("\n" + "=" * 40)
+    print("           MAIN MENU")
+    print("=" * 40)
+    print("1. Add Assets to Portfolio")
+    print("2. View Asset List")
+    print("3. View Portfolio Summary")
+    print("4. Save Portfolio to File")
+    print("5. Clear Portfolio")
+    print("6. Exit Program")
+    print("-" * 40)
+
+def get_menu_choice():
+    """
+    Get user's menu choice with validation
+    
+    Returns:
+        int: Valid menu choice (1-6)
+    """
+    while True:
+        try:
+            choice = input("Enter your choice (1-6): ").strip()
+            choice_num = int(choice)
+            
+            if 1 <= choice_num <= 6:
+                return choice_num
             else:
-                print("❌ Operation cancelled")
+                print("❌ Please enter a number between 1 and 6.")
                 
-        except (ValueError, IndexError) as e:
-            print(f"❌ Invalid selection: {e}")
-        except KeyboardInterrupt:
-            print("\n❌ Operation cancelled")
-    
-    def run(self) -> None:
-        """Run the main CLI loop."""
-        print("🏦 Welcome to Asset Summary CLI!")
-        print("Your comprehensive portfolio management tool")
-        
-        while True:
-            try:
-                self.show_menu()
-                choice = input("Select an option (1-9): ").strip()
-                
-                if choice == '1':
-                    self.manager.display_portfolio_summary()
-                elif choice == '2':
-                    self.manager.display_detailed_assets()
-                elif choice == '3':
-                    self.manager.add_asset_interactive()
-                elif choice == '4':
-                    self.manager.update_prices_interactive()
-                elif choice == '5':
-                    self.remove_asset_interactive()
-                elif choice == '6':
-                    filename = input("CSV filename (press Enter for 'portfolio_export.csv'): ").strip()
-                    if not filename:
-                        filename = "portfolio_export.csv"
-                    self.manager.export_to_csv(filename)
-                elif choice == '7':
-                    self.manager.save_portfolio()
-                elif choice == '8':
-                    self.load_sample_data()
-                elif choice == '9':
-                    print("💾 Saving portfolio before exit...")
-                    self.manager.save_portfolio()
-                    print("👋 Thank you for using Asset Summary CLI!")
-                    break
-                else:
-                    print("❌ Invalid option. Please select 1-9.")
-                    
-            except KeyboardInterrupt:
-                print("\n\n💾 Saving portfolio before exit...")
-                self.manager.save_portfolio()
-                print("👋 Goodbye!")
-                break
-            except Exception as e:
-                print(f"❌ Unexpected error: {e}")
+        except ValueError:
+            print("❌ Please enter a valid number.")
 
+def add_assets_batch(assets):
+    """
+    Add multiple assets in batch mode
+    
+    Args:
+        assets (list): Current list of assets to add to
+    
+    Returns:
+        int: Number of assets added
+    """
+    print("\n📝 Asset Entry Mode")
+    print("Enter asset details below. Type 'done' when finished.")
+    print("-" * 40)
+    
+    added_count = 0
+    
+    while True:
+        asset_name, asset_value = get_asset_input()
+        
+        if asset_name is None:  # User typed 'done'
+            break
+        
+        assets.append((asset_name, asset_value))
+        added_count += 1
+        print(f"✅ Added: {asset_name} - {format_currency(asset_value)}")
+    
+    if added_count > 0:
+        print(f"\n🎉 Successfully added {added_count} asset(s) to your portfolio!")
+    else:
+        print("\n📭 No assets were added.")
+    
+    return added_count
+
+def clear_portfolio(assets):
+    """
+    Clear all assets from portfolio with confirmation
+    
+    Args:
+        assets (list): List of assets to clear
+    
+    Returns:
+        bool: True if portfolio was cleared, False otherwise
+    """
+    if not assets:
+        print("\n📭 Portfolio is already empty!")
+        return False
+    
+    print(f"\n⚠️  Warning: This will remove all {len(assets)} assets from your portfolio!")
+    confirmation = input("Are you sure? Type 'yes' to confirm: ").strip().lower()
+    
+    if confirmation == 'yes':
+        assets.clear()
+        print("\n🗑️  Portfolio cleared successfully!")
+        return True
+    else:
+        print("\n❌ Operation cancelled.")
+        return False
+
+def run_demo_mode():
+    """
+    Run a demonstration with sample data
+    
+    Returns:
+        list: Sample assets for demonstration
+    """
+    print("\n🎬 Demo Mode: Loading sample portfolio...")
+    
+    sample_assets = [
+        ("Apple Stock (AAPL)", 15000.00),
+        ("Bitcoin", 25000.00),
+        ("Real Estate Fund", 50000.00),
+        ("Savings Account", 5000.00),
+        ("Gold ETF", 8000.00),
+        ("Tesla Stock (TSLA)", 12000.00),
+        ("Emergency Fund", 10000.00)
+    ]
+    
+    print("✅ Sample portfolio loaded with 7 assets!")
+    return sample_assets.copy()
 
 def main():
-    """Main function to run the Asset Summary CLI."""
-    print("=== Day 6: Asset Summary CLI Solution ===")
-    print()
+    """Main function to run the Asset Summary CLI"""
+    # Initialize portfolio
+    assets = []
     
-    # Check if script is run with command line arguments
-    if len(sys.argv) > 1:
-        parser = argparse.ArgumentParser(description="Asset Summary CLI")
-        parser.add_argument("--demo", action="store_true", help="Run demonstration mode")
-        parser.add_argument("--file", type=str, default="portfolio_data.json", help="Portfolio data file")
-        
-        args = parser.parse_args()
-        
-        if args.demo:
-            # Run demonstration mode
-            print("🎯 Running in demonstration mode...")
-            manager = AssetManager(args.file)
-            
-            # Create sample portfolio
-            sample_assets = [
-                Asset("Apple Inc", AssetType.STOCK, AssetCategory.EQUITY, 100, 150.00, 175.50, "2023-01-15"),
-                Asset("Bitcoin", AssetType.CRYPTO, AssetCategory.ALTERNATIVE, 0.5, 45000.00, 42000.00, "2023-03-10"),
-                Asset("Savings", AssetType.CASH, AssetCategory.CASH_EQUIVALENT, 1, 25000.00, 25000.00, "2023-01-01")
-            ]
-            
-            for asset in sample_assets:
-                manager.portfolio.add_asset(asset)
-            
-            manager.display_portfolio_summary()
-            manager.display_detailed_assets()
-            manager.export_to_csv("demo_export.csv")
-            
-            print("\n📚 Key Features Demonstrated:")
-            print("• Object-oriented design with dataclasses and enums")
-            print("• File I/O with JSON and CSV support")
-            print("• Error handling and data validation")
-            print("• Interactive command-line interface")
-            print("• Portfolio analytics and reporting")
-            print("• Type hints and documentation")
-            print("• Modular, extensible architecture")
-            
-            return
+    # Display welcome message
+    display_welcome()
     
-    # Run interactive CLI
-    cli = AssetSummaryCLI()
-    cli.run()
+    # Ask if user wants demo mode
+    demo_choice = input("\nWould you like to start with sample data? (y/n): ").strip().lower()
+    if demo_choice == 'y':
+        assets = run_demo_mode()
+        display_portfolio_summary(assets)
+    
+    # Main program loop
+    while True:
+        display_menu()
+        choice = get_menu_choice()
+        
+        if choice == 1:  # Add Assets
+            add_assets_batch(assets)
+            
+        elif choice == 2:  # View Asset List
+            display_asset_list(assets)
+            
+        elif choice == 3:  # View Portfolio Summary
+            display_portfolio_summary(assets)
+            
+        elif choice == 4:  # Save Portfolio
+            save_portfolio_to_file(assets)
+            
+        elif choice == 5:  # Clear Portfolio
+            clear_portfolio(assets)
+            
+        elif choice == 6:  # Exit
+            print("\n👋 Thank you for using Asset Portfolio Manager!")
+            print("Your financial future is in your hands! 💪")
+            break
+    
+    # Final summary before exit
+    if assets:
+        print(f"\n📊 Final Portfolio Stats:")
+        stats = calculate_portfolio_stats(assets)
+        print(f"   • Total Assets: {stats['count']}")
+        print(f"   • Total Value: {format_currency(stats['total'])}")
+        print(f"   • Average Value: {format_currency(stats['average'])}")
 
+def run_basic_example():
+    """
+    Run a basic example as specified in curriculum requirements
+    This demonstrates the core functionality without the full CLI
+    """
+    print("\n=== Basic Asset Summary Example (Core Requirements) ===")
+    
+    # Sample asset data
+    test_assets = [
+        ("Stocks Portfolio", 25000.50),
+        ("Real Estate", 150000.00),
+        ("Savings Account", 8500.00),
+        ("Cryptocurrency", 12750.25),
+        ("Bonds", 5000.00)
+    ]
+    
+    print("Sample Asset Portfolio:")
+    print("-" * 30)
+    for i, (name, value) in enumerate(test_assets, 1):
+        print(f"{i}. {name}: {format_currency(value)}")
+    
+    # Calculate and display core statistics
+    stats = calculate_portfolio_stats(test_assets)
+    
+    print("\n📊 Portfolio Analytics:")
+    print(f"Total Portfolio Value: {format_currency(stats['total'])}")
+    print(f"Average Asset Value: {format_currency(stats['average'])}")
+    print(f"Minimum Asset Value: {format_currency(stats['minimum'])}")
+    print(f"Maximum Asset Value: {format_currency(stats['maximum'])}")
+    print(f"Number of Assets: {stats['count']}")
+    
+    # Find and display min/max assets
+    min_asset, max_asset = find_min_max_assets(test_assets)
+    print(f"\nLowest Value: {min_asset[0]} - {format_currency(min_asset[1])}")
+    print(f"Highest Value: {max_asset[0]} - {format_currency(max_asset[1])}")
+    
+    print("\n✅ Core requirements demonstrated!")
 
 if __name__ == "__main__":
-    main()
+    print("Choose mode:")
+    print("1. Run Full CLI Application")
+    print("2. Run Basic Example (Core Requirements)")
+    
+    mode_choice = input("Enter choice (1 or 2): ").strip()
+    
+    if mode_choice == "2":
+        run_basic_example()
+    else:
+        main()
+    
+    print("\n🎓 Day 6 Solution Complete!")
+    print("Key concepts mastered:")
+    print("✓ User input and validation")
+    print("✓ Data structures (lists and tuples)")
+    print("✓ Functions and code organization")
+    print("✓ Mathematical calculations")
+    print("✓ String formatting and presentation")
+    print("✓ Error handling")
+    print("✓ File I/O operations")
+    print("✓ Menu-driven interface design")
